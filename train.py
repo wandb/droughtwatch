@@ -1,7 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # train.py
-#----------
-# 
+# ----------
+# Use Tensorflow Estimators to train a simple CNN to predict a continuous
+# indicator of forage quality between 0 and 1, with lower values indicating
+# lower forage quality (higher drought severity) and higher values indicating
+# higher forage quality (lower drought severity) 
+
 import argparse
 import os
 import tensorflow as tf
@@ -11,8 +15,8 @@ from wandb.tensorflow import WandbHook
 
 MODEL_NAME = ""
 DATA_PATH = "data"
-BATCH_SIZE = 100
-EPOCHS = 50
+BATCH_SIZE = 32
+EPOCHS = 10
 L1_SIZE = 32
 L2_SIZE = 64
 FC_SIZE = 128
@@ -49,7 +53,7 @@ features = {
     'label': tf.FixedLenFeature([], tf.int64),
 }        
 
-def tfrecord_input_fn(filelist, batch_size=32, num_epochs=20):
+def parse_tfrecords(filelist, batch_size, num_epochs):
   def _parse_(serialized_example, keylist=['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11']):
     example = tf.parse_single_example(serialized_example, features)
     def getband(example_key):
@@ -64,8 +68,7 @@ def tfrecord_input_fn(filelist, batch_size=32, num_epochs=20):
     return {'image': image}, label
     
   tfrecord_dataset = tf.data.TFRecordDataset(filelist)
-  #tfrecord_dataset = tfrecord_dataset.apply(tf.data.experimental.ignore_errors()) 
-  tfrecord_dataset = tfrecord_dataset.map(lambda   x:_parse_(x)).shuffle(True).repeat(num_epochs).batch(batch_size)
+  tfrecord_dataset = tfrecord_dataset.map(lambda   x:_parse_(x)).shuffle(True).batch(batch_size).repeat(num_epochs)
   tfrecord_iterator = tfrecord_dataset.make_one_shot_iterator()
   return tfrecord_iterator.get_next()
 
@@ -90,22 +93,19 @@ def build_estimator_from_model_original(args):
   return estimator
 
 def build_estimator_from_model_test(args):
-  final_bias_init = initializers.Constant(value=0.249)
-
   model = tf.keras.Sequential()
   model.add(tf.keras.layers.InputLayer(input_shape=[65,65,10], name='image'))
-  model.add(layers.Conv2D(filters=args.l1_size, kernel_size=(3, 3), activation='relu'))
+  model.add(layers.Conv2D(filters=args.l1_size, kernel_size=(5, 5), activation='relu'))
   model.add(layers.MaxPooling2D(pool_size=(2, 2)))
   model.add(layers.Conv2D(filters=args.l2_size, kernel_size=(3, 3), activation='relu'))
   model.add(layers.MaxPooling2D(pool_size=(2, 2)))
   model.add(layers.Flatten())
 
   model.add(layers.Dense(units=args.fc_size, activation='relu'))
-  #model.add(layers.Dense(units=84, activation='relu'))
-  model.add(layers.Dense(units=1, activation = 'sigmoid', bias_initializer=final_bias_init))
-  model.compile(loss=tf.keras.losses.mean_absolute_error, 
+  model.add(layers.Dense(units=1, activation = 'sigmoid'))
+  model.compile(loss=tf.keras.losses.mean_squared_error, 
               optimizer=tf.keras.optimizers.Adam(), 
-              metrics=['mae'])
+              metrics=['mse'])
   estimator = tf.keras.estimator.model_to_estimator(keras_model=model)
   return estimator
 
@@ -123,16 +123,20 @@ def train_cnn(args):
     "batch_size" : args.batch_size,
     "epochs": args.epochs,
     "n_train" : N_TRAIN,
-    "n_test": N_TEST
+    "n_test": N_TEST,
+    "l1_size" : args.l1_size,
+    "l2_size" : args.l2_size,
+    "fc_size" : args.fc_size,
+    "loss_type" : "mse"
   }
   wandb.config.update(config)
  
   estimator = build_estimator_from_model_test(args)
-  train_spec = tf.estimator.TrainSpec(input_fn=lambda: tfrecord_input_fn(train), 
+  train_spec = tf.estimator.TrainSpec(input_fn=lambda: parse_tfrecords(train, args.batch_size, args.epochs), 
                                     max_steps=100000, 
                                     hooks=[WandbHook()])
-  eval_spec = tf.estimator.EvalSpec(input_fn=lambda: tfrecord_input_fn(test, 
-                                                                     batch_size=100, 
+  eval_spec = tf.estimator.EvalSpec(input_fn=lambda: parse_tfrecords(test, 
+                                                                     args.batch_size, 
                                                                      num_epochs=10))
   tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
@@ -155,7 +159,7 @@ if __name__ == "__main__":
     "--batch_size",
     type=int,
     default=BATCH_SIZE,
-    help="Number of images in traiing batch")
+    help="Number of images in training batch")
   parser.add_argument(
     "-e",
     "--epochs",

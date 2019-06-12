@@ -9,18 +9,41 @@ You can learn more and [join the benchmark here](https://app.wandb.ai/wandb/drou
 
 ## Dataset
 
-The current dataset consists of 102,457 train and 5412 test satellite images, 65x65 pixels, in 11 spectrum bands. Human experts (pastoralists) have labeled these with the number of cows that the corresponding geographic location could support (0, 1, 2, or 3+ cows). More data will become available and described here in the near future.
+The current dataset consists of 102,457 train and 5412 test satellite images, 65x65 pixels each, in 10 spectrum bands. Human experts (pastoralists) have labeled these with the number of cows that the corresponding geographic location could support (0, 1, 2, or 3+ cows). More data will become available and described here in the near future.
 
 ## Usage
 
 Please refer to the [benchmark instructions](https://app.wandb.ai/wandb/droughtwatch/benchmark) to get started.
-Run ``python train.py -h`` to see all the existing options&mdash;hyperparameters and config can be set at the top of each script or overriden via the command line for convenience.
+
+To train the model:
+
+```sh
+# Optional: create a virtualenv
+pyenv virtualenv 3.6.4 droughtwatch-3.6
+pyenv local droughtwatch-3.6
+echo droughtwatch-3.6 > .python-version
+
+# Install requirements.
+pip install -U -r requirements.txt
+
+# Install tensorflow GPU support if needed
+pip install tensorflow-gpu
+
+# Link to W&B -- this will track your training and save your run results.
+wandb init
+
+# Download the train and test data (~6.5GB) (default location: ``data`` in the repo)
+bash download_data.sh
+
+# Train your model in Tensorflow. Run with -h to see existing command line options
+python train.py
+```
 
 ## Next Steps
 
 Here are some ideas to try next:
 * Keras/PyTorch integration for faster experimentation
+* different network architectures, loss functions, optimizers, and other hyperparameter settings
 * reformulations of the problem as a classification instead of a regression
+* explore correlations between the sparse expertly-labeled data (RGB ground-level photos) and the dense, easier-to-obtain data (lower resolution satellite imagery in 10 spectral bands)
 * explore the data distribution and class balance: are different levels of drought intensity/forage quality evenly represented? what kind of new data would be most helpful to label?
-* explore correlations between the sparse expert data&mdash;RGB ground-level photos&mdash;and the dense, lower quality unlabeled data&mdash;lower resolution satellite imagery in 11 spectral bands
-* different network architectures
