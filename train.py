@@ -68,7 +68,7 @@ def parse_tfrecords(filelist, batch_size, num_epochs):
     return {'image': image}, label
     
   tfrecord_dataset = tf.data.TFRecordDataset(filelist)
-  tfrecord_dataset = tfrecord_dataset.map(lambda   x:_parse_(x)).shuffle(True).batch(batch_size).repeat(num_epochs)
+  tfrecord_dataset = tfrecord_dataset.map(lambda x:_parse_(x)).shuffle(True).batch(batch_size).repeat(num_epochs)
   tfrecord_iterator = tfrecord_dataset.make_one_shot_iterator()
   return tfrecord_iterator.get_next()
 
@@ -132,12 +132,14 @@ def train_cnn(args):
   wandb.config.update(config)
  
   estimator = build_estimator_from_model_test(args)
-  train_spec = tf.estimator.TrainSpec(input_fn=lambda: parse_tfrecords(train, args.batch_size, args.epochs), 
-                                    max_steps=100000, 
-                                    hooks=[WandbHook()])
-  eval_spec = tf.estimator.EvalSpec(input_fn=lambda: parse_tfrecords(test, 
-                                                                     args.batch_size, 
-                                                                     num_epochs=10))
+  max_steps = (float(N_TRAIN) / float (args.batch_size)) * args.epochs
+  print("MAX STEPS: ", max_steps)
+  train_spec = tf.estimator.TrainSpec(input_fn=lambda: parse_tfrecords(train, args.batch_size, args.epochs),
+                                      max_steps=max_steps,
+                                      hooks=[WandbHook()])
+  eval_spec = tf.estimator.EvalSpec(input_fn=lambda: parse_tfrecords(test, args.batch_size, 1))
+                                    #steps=int(float(N_TEST)/float(args.batch_size)),
+                                    #hooks=[WandbHook()])
   tf.estimator.train_and_evaluate(estimator, train_spec, eval_spec)
 
 if __name__ == "__main__":
