@@ -16,7 +16,7 @@ You can learn more and [join the benchmark here](https://app.wandb.ai/wandb/drou
 
 ## Dataset
 
-The current dataset consists of 86,295 train and 10,787 test satellite images, 65x65 pixels each, in 10 spectrum bands. Human experts (pastoralists) have labeled these with the number of cows that the corresponding geographic location could support (0, 1, 2, or 3+ cows). The data is in TFRecords format and takes up ~4.5GB. Permissions are pending on some of the data, and we will update this section as more data becomes available. You can [learn more about the format here](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C01_T1_RT).
+The current dataset consists of 97,082 train and 5,393 test satellite images, 65x65 pixels each, in 10 spectrum bands. Human experts (pastoralists) have labeled these with the number of cows that the corresponding geographic location could support (0, 1, 2, or 3+ cows). The data is in TFRecords format and takes up ~4.5GB. We are actively iterating on the dataset and will update this section as newer versions become available. You can [learn more about the format here](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C01_T1_RT).
 
 ## Usage
 
@@ -52,4 +52,4 @@ Here are some ideas to try next:
 * comparison between formulating this task as a regression (predicting a continuous value for drought severity or forage quality)
 vs a classification (predicting a discrete label))
 * explore correlations between the sparse expertly-labeled data (RGB ground-level photos) and the dense, easier-to-obtain data (lower resolution satellite imagery in 10 spectral bands)
-* better account for the class imbalance (actual distribution of ground truth labels: { 0: 63927, 1: 16135, 2: 16939, 3: 9993 })
+* explore strategies to account for the class imbalance (roughly ~60% of the full data gathered is of class 0, classes 1 and 2 have ~15% each, and the remaining ~10% is class 3)

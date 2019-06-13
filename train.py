@@ -24,8 +24,9 @@ set_random_seed(1)
 # for categorical classification, there are 4 classes: 0, 1, 2, or 3+ cows
 NUM_CLASSES = 4
 # fixed image counts from TFRecords
-NUM_TRAIN = 86295
-NUM_TEST = 10787
+NUM_TRAIN = 97082
+NUM_TEST = 5393
+
 # default image side dimension (65 x 65 square)
 IMG_DIM = 65
 # use 7 out of 10 bands for now
