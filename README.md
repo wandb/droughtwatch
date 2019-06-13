@@ -9,7 +9,7 @@ You can learn more and [join the benchmark here](https://app.wandb.ai/wandb/drou
 
 ## Dataset
 
-The current dataset consists of 102,457 train and 5412 test satellite images, 65x65 pixels each, in 10 spectrum bands. Human experts (pastoralists) have labeled these with the number of cows that the corresponding geographic location could support (0, 1, 2, or 3+ cows). More data will become available and described here in the near future.
+The current dataset consists of 86,295 train and 10,787 test satellite images, 65x65 pixels each, in 10 spectrum bands. Human experts (pastoralists) have labeled these with the number of cows that the corresponding geographic location could support (0, 1, 2, or 3+ cows). The data is in TFRecords format and takes up ~4.3GB. We will update this section as more data becomes available..
 
 ## Usage
 
@@ -35,15 +35,17 @@ wandb init
 # Download the train and test data (~6.5GB) (default location: ``data`` in the repo)
 bash download_data.sh
 
-# Train your model in Tensorflow. Run with -h to see existing command line options
-python train.py
+# Train your model in Keras. Run with -h to see existing command line options
+# To quickly verify that the model is training, set epochs=1
+python keras_train.py --epochs=1
 ```
 
 ## Next Steps
 
 Here are some ideas to try next:
-* Keras/PyTorch integration for faster experimentation
+
 * different network architectures, loss functions, optimizers, and other hyperparameter settings
-* reformulations of the problem as a classification instead of a regression
+* data augmentation (rotate, flip) and narrowing the focus (center crop)
+* comparison between formulating this task as a regression vs a classification (predicting a continuous value vs a discrete label)
 * explore correlations between the sparse expertly-labeled data (RGB ground-level photos) and the dense, easier-to-obtain data (lower resolution satellite imagery in 10 spectral bands)
 * explore the data distribution and class balance: are different levels of drought intensity/forage quality evenly represented? what kind of new data would be most helpful to label?
