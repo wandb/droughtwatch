@@ -1,7 +1,14 @@
 # Weights & Biases Benchmark for Drought Prediction
 
-This is a deep learning/computer vision project to predict drought severity from satellite imagery and expert-labeled ground-level photos.
+This project leverages deep learning and computer vision for drought
+resilience, using satellite images and human expert labels to
+detect drought conditions in Northern Kenya.
+
 It is instrumented with [Weights & Biases](https://www.wandb.com) to track and visualize model training and facilitate collaboration.
+The [W&B Benchmark](https://app.wandb.ai/wandb/droughtwatch/benchmark) is a public home for developing deep learning
+models for drought prediction. The current challenge is to learn from ~100K expert labels of forage quality (concretely, how many cows from
+0 to 3+ can the given geolocation support?) to make more accurate predictions from unlabeled satellite images. With better models,
+index insurance companies can monitor drought conditions&mdash;and send resources to families in the area&mdash;more effectively.
 
 ## How to participate
 
@@ -40,8 +47,9 @@ python train.py --epochs=1
 Here are some ideas to try next:
 
 * different network architectures, loss functions, optimizers, and other hyperparameter settings
-* explore subsets of bands and architectures that account for differences in the bands
+* explore subsets of spectral bands and architectures that account for differences in the spectral bands
 * data augmentation (rotate, flip) and narrowing the focus (center crop)
-* comparison between formulating this task as a regression vs a classification (predicting a continuous value vs a discrete label for drought severity)
+* comparison between formulating this task as a regression (predicting a continuous value for drought severity or forage quality)
+vs a classification (predicting a discrete label))
 * explore correlations between the sparse expertly-labeled data (RGB ground-level photos) and the dense, easier-to-obtain data (lower resolution satellite imagery in 10 spectral bands)
 * better account for the class imbalance (actual distribution of ground truth labels: { 0: 63927, 1: 16135, 2: 16939, 3: 9993 })
