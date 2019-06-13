@@ -42,7 +42,7 @@ L2_SIZE = 64
 L3_SIZE = 128
 FC_SIZE = 128
 DROPOUT_1 = 0.2
-DROPOUT_2 = 0.4
+DROPOUT_2 = 0.2
 
 def class_weights_matrix():
   # define class weights to account for uneven distribution of classes
@@ -136,7 +136,6 @@ def build_classification_model(args):
   model.add(tf.keras.layers.InputLayer(input_shape=[IMG_DIM, IMG_DIM, NUM_BANDS], name='image'))
   model.add(layers.Conv2D(filters=args.l1_size, kernel_size=(3, 3), activation='relu'))
   model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-  #model.add(layers.Dropout(rate=args.dropout_1))
 
   model.add(layers.Conv2D(filters=args.l2_size, kernel_size=(3, 3), activation='relu'))
   model.add(layers.Conv2D(filters=args.l2_size, kernel_size=(3, 3), activation='relu'))
@@ -146,11 +145,10 @@ def build_classification_model(args):
   model.add(layers.Conv2D(filters=args.l3_size, kernel_size=(3, 3), activation='relu'))
   model.add(layers.Conv2D(filters=args.l3_size, kernel_size=(3, 3), activation='relu'))
   model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-  model.add(layers.Dropout(rate=args.dropout_1))
+  model.add(layers.Dropout(rate=args.dropout_2))
   model.add(layers.Flatten())
 
   model.add(layers.Dense(units=args.fc_size, activation='relu'))
-  #model.add(layers.Dropout(args.dropout_2))
   model.add(layers.Dense(units=50, activation='relu'))
   model.add(layers.Dense(NUM_CLASSES, activation='softmax'))
   model.compile(loss=tf.keras.losses.categorical_crossentropy,
@@ -183,8 +181,8 @@ def train_cnn(args):
   test_images, test_labels = parse_tfrecords(test_tfrecords, args.batch_size, NUM_TEST)
   
   # number of steps per epoch is the total data size divided by the batch size
-  train_steps_per_epoch = math.floor(float(NUM_TRAIN) /float(args.batch_size))
-  test_steps_per_epoch = math.floor(float(NUM_TEST)/float(args.batch_size))
+  train_steps_per_epoch = int(math.floor(float(NUM_TRAIN) /float(args.batch_size)))
+  test_steps_per_epoch = int(math.floor(float(NUM_TEST)/float(args.batch_size)))
   
   model = build_classification_model(args)
   model.fit(train_images, train_labels, steps_per_epoch=train_steps_per_epoch, \
