@@ -1,3 +1,3 @@
-gsutil
-tensorflow=1.13.1
+numpy
+tensorflow==1.13.1
 wandb

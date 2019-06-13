@@ -18,11 +18,6 @@ Please refer to the [benchmark instructions](https://app.wandb.ai/wandb/droughtw
 To train the model:
 
 ```sh
-# Optional: create a virtualenv
-pyenv virtualenv 3.6.4 droughtwatch-3.6
-pyenv local droughtwatch-3.6
-echo droughtwatch-3.6 > .python-version
-
 # Install requirements.
 pip install -U -r requirements.txt
 
@@ -32,7 +27,7 @@ pip install tensorflow-gpu
 # Link to W&B -- this will track your training and save your run results.
 wandb init
 
-# Download the train and test data (~6.5GB) (default location: ``data`` in the repo)
+# Download the train and test data (~4.3GB) (default location: ``data`` in the repo)
 bash download_data.sh
 
 # Train your model in Keras. Run with -h to see existing command line options

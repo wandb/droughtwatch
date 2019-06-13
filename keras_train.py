@@ -28,11 +28,13 @@ NUM_TRAIN = 86295
 NUM_TEST = 10787
 # default image side dimension (65 x 65 square)
 IMG_DIM = 65
+# use 7 out of 10 bands for now
+NUM_BANDS = 7
 
 # settings/hyperparams
 # these defaults can be edited here or overwritten via command line
 MODEL_NAME = ""
-DATA_PATH = "new_data"
+DATA_PATH = "data"
 BATCH_SIZE = 32
 EPOCHS = 10
 L1_SIZE = 32
@@ -87,8 +89,9 @@ features = {
   'label': tf.FixedLenFeature([], tf.int64),
 }        
 
-def parse_tfrecords(filelist, batch_size, num_epochs, buffer_size):
-  def _parse_(serialized_example, keylist=['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8', 'B9', 'B10', 'B11']):
+def parse_tfrecords(filelist, batch_size, buffer_size):
+  # try a subset of possible bands
+  def _parse_(serialized_example, keylist=['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8']):
     example = tf.parse_single_example(serialized_example, features)
    
     def getband(example_key):
@@ -113,7 +116,7 @@ def parse_tfrecords(filelist, batch_size, num_epochs, buffer_size):
 def build_regression_model(args):
   # initial regression model
   model = tf.keras.Sequential()
-  model.add(tf.keras.layers.InputLayer(input_shape=[IMG_DIM, IMG_DIM, 10], name='image'))
+  model.add(tf.keras.layers.InputLayer(input_shape=[IMG_DIM, IMG_DIM, NUM_BANDS], name='image'))
   model.add(layers.Conv2D(filters=args.l1_size, kernel_size=(5, 5), activation='relu'))
   model.add(layers.MaxPooling2D(pool_size=(2, 2)))
   model.add(layers.Conv2D(filters=args.l2_size, kernel_size=(3, 3), activation='relu'))
@@ -130,19 +133,25 @@ def build_regression_model(args):
 def build_classification_model(args):
   # simple CNN for classifcation (default)
   model = tf.keras.Sequential()
-  model.add(tf.keras.layers.InputLayer(input_shape=[IMG_DIM, IMG_DIM, 10], name='image'))
+  model.add(tf.keras.layers.InputLayer(input_shape=[IMG_DIM, IMG_DIM, NUM_BANDS], name='image'))
   model.add(layers.Conv2D(filters=args.l1_size, kernel_size=(3, 3), activation='relu'))
+  model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+  #model.add(layers.Dropout(rate=args.dropout_1))
+
+  model.add(layers.Conv2D(filters=args.l2_size, kernel_size=(3, 3), activation='relu'))
   model.add(layers.Conv2D(filters=args.l2_size, kernel_size=(3, 3), activation='relu'))
   model.add(layers.MaxPooling2D(pool_size=(2, 2)))
   model.add(layers.Dropout(args.dropout_1))
   
   model.add(layers.Conv2D(filters=args.l3_size, kernel_size=(3, 3), activation='relu'))
+  model.add(layers.Conv2D(filters=args.l3_size, kernel_size=(3, 3), activation='relu'))
   model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-  model.add(layers.Dropout(args.dropout_1))
+  model.add(layers.Dropout(rate=args.dropout_1))
   model.add(layers.Flatten())
 
   model.add(layers.Dense(units=args.fc_size, activation='relu'))
-  model.add(layers.Dropout(args.dropout_2))
+  #model.add(layers.Dropout(args.dropout_2))
+  model.add(layers.Dense(units=50, activation='relu'))
   model.add(layers.Dense(NUM_CLASSES, activation='softmax'))
   model.compile(loss=tf.keras.losses.categorical_crossentropy,
               optimizer=tf.keras.optimizers.Adam(), 
@@ -170,8 +179,8 @@ def train_cnn(args):
   wandb.config.update(config)
 
   # load images and labels from TFRecords
-  train_images, train_labels = parse_tfrecords(train_tfrecords, args.batch_size, args.epochs, NUM_TRAIN)
-  test_images, test_labels = parse_tfrecords(test_tfrecords, args.batch_size, 1, NUM_TEST)
+  train_images, train_labels = parse_tfrecords(train_tfrecords, args.batch_size, NUM_TRAIN)
+  test_images, test_labels = parse_tfrecords(test_tfrecords, args.batch_size, NUM_TEST)
   
   # number of steps per epoch is the total data size divided by the batch size
   train_steps_per_epoch = math.floor(float(NUM_TRAIN) /float(args.batch_size))
@@ -179,7 +188,7 @@ def train_cnn(args):
   
   model = build_classification_model(args)
   model.fit(train_images, train_labels, steps_per_epoch=train_steps_per_epoch, \
-            epochs=args.epochs, class_weight=cw_try2(), \
+            epochs=args.epochs, class_weight=class_weights_matrix(), \
             validation_data=(test_images, test_labels), \
             validation_steps=test_steps_per_epoch, \
             callbacks=[WandbCallback()])
