@@ -16,7 +16,9 @@ You can learn more and [join the benchmark here](https://app.wandb.ai/wandb/drou
 
 ## Dataset
 
-The current dataset consists of 97,082 train and 5,393 test satellite images, 65x65 pixels each, in 10 spectrum bands. Human experts (pastoralists) have labeled these with the number of cows that the corresponding geographic location could support (0, 1, 2, or 3+ cows). The data is in TFRecords format and takes up ~4.5GB. We are actively iterating on the dataset and will update this section as newer versions become available. You can [learn more about the format here](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C01_T1_RT).
+The current dataset consists of 97,082 train and 5,393 test satellite images, 65x65 pixels each, in 10 spectrum bands. Human experts (pastoralists) have labeled these with the number of cows that the geographic location at the **center** of the image could support (0, 1, 2, or 3+ cows). Each pixel represents a 30 meter square, so the images at full size are 1.95 kilometers across. Pastoralists are asked to rate the quality of the area within 20 meters of where they are standing, which correspondes to an area slightly larger a single pixel. However, since forage quality is correlated across space, the larger image may be useful for prediction.
+
+The data is in TFRecords format and takes up ~4.5GB. We are actively iterating on the dataset and will update this section as newer versions become available. You can [learn more about the format of the satellite images here.](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C01_T1_RT).
 
 ## Usage
 
@@ -49,7 +51,6 @@ Here are some ideas to try next:
 * different network architectures, loss functions, optimizers, and other hyperparameter settings
 * explore subsets of spectral bands and architectures that account for differences in the spectral bands
 * data augmentation (rotate, flip) and narrowing the focus (center crop)
-* comparison between formulating this task as a regression (predicting a continuous value for drought severity or forage quality)
-vs a classification (predicting a discrete label))
-* explore correlations between the sparse expertly-labeled data (RGB ground-level photos) and the dense, easier-to-obtain data (lower resolution satellite imagery in 10 spectral bands)
+* comparison between formulating this task as a regression (predicting a continuous value for drought severity or forage quality) vs a classification (predicting a discrete label))
+* explore correlations between the RGB ground-level photos and satellite images
 * explore strategies to account for the class imbalance (roughly ~60% of the full data gathered is of class 0, classes 1 and 2 have ~15% each, and the remaining ~10% is class 3)
