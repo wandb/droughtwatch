@@ -27,7 +27,8 @@ You can [learn more about the format of the satellite images here](https://devel
 # Clone this repository
 git clone https://github.com/wandb/droughtwatch.git
 
-# Install requirements.
+# Install requirements
+cd droughtwatch
 pip install -U -r requirements.txt
 
 # Install tensorflow GPU support if needed--this will make your model train much faster.
@@ -47,6 +48,8 @@ wandb init
 bash download_data.sh
 
 # Train a baseline model in Keras. Run with -h to see command line options
+python train.py
+
 # To quickly verify that the model is training, set epochs=1
 python train.py --epochs=1
 ```
