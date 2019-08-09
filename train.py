@@ -34,7 +34,7 @@ NUM_BANDS = 7
 # settings/hyperparams
 # these defaults can be edited here or overwritten via command line
 MODEL_NAME = ""
-DATA_PATH = "../dw/droughtwatch_data"
+DATA_PATH = "data"
 BATCH_SIZE = 64
 EPOCHS = 10
 L1_SIZE = 32
