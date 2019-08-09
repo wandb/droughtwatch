@@ -35,7 +35,7 @@ NUM_BANDS = 7
 # these defaults can be edited here or overwritten via command line
 MODEL_NAME = ""
 DATA_PATH = "../dw/droughtwatch_data"
-BATCH_SIZE = 32
+BATCH_SIZE = 64
 EPOCHS = 10
 L1_SIZE = 32
 L2_SIZE = 64
@@ -46,11 +46,11 @@ DROPOUT_2 = 0.2
 
 def class_weights_matrix():
   # define class weights to account for uneven distribution of classes
-  # actual distribution of ground truth labels:
-  # 0: 63927 (~60%)
-  # 1: 16135 (~15%)
-  # 2: 16939 (~15%)
-  # 3: 9993  (~10%)
+  # distribution of ground truth labels:
+  # 0: ~60%
+  # 1: ~15%
+  # 2: ~15%
+  # 3: ~10%
   class_weights = np.zeros((NUM_TRAIN, NUM_CLASSES))
   class_weights[:, 0] += 1.0
   class_weights[:, 1] += 4.0
