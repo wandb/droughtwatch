@@ -42,16 +42,16 @@ export CUDA_VISIBLE_DEVICES=0
 # Link to W&B -- this will track your training and save your run results.
 # For cloud instances, you may need to update your PATH.
 export PATH=~/.local/bin:$PATH
-wandb init
+wandb init # or wandb login
 
 # Download the train and validation data (~4.3GB) (default location: ``data`` in the repo)
 bash download_data.sh
 
-# Train a baseline model in Keras. Run with -h to see command line options
-python train.py
+# To quickly verify the setup, you can train the model for just one epoch:
+python train.py --epochs 1
 
-# To quickly verify that the model is training, set epochs=1
-python train.py --epochs=1
+# Train the baseline model in Keras. Run with -h to see command line options
+python train.py
 ```
 
 ## Next Steps

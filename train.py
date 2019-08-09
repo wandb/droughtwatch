@@ -189,7 +189,7 @@ def train_cnn(args):
             epochs=args.epochs, class_weight=class_weights_matrix(), \
             validation_data=(val_images, val_labels), \
             validation_steps=val_steps_per_epoch, \
-            callbacks=[WandbCallback()])
+            callbacks=[WandbCallback(input_type="satellite")])
  
 if __name__ == "__main__":
   parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
