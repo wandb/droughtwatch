@@ -40,9 +40,12 @@ EPOCHS = 10
 L1_SIZE = 32
 L2_SIZE = 64
 L3_SIZE = 128
-FC_SIZE = 128
+FC1_SIZE = 128
+FC2_SIZE = 50
 DROPOUT_1 = 0.2
 DROPOUT_2 = 0.2
+OPTIMIZER = "Adam"
+LEARNING_RATE = 0.001
 
 def class_weights_matrix():
   # define class weights to account for uneven distribution of classes
@@ -72,6 +75,21 @@ def file_list_from_folder(folder, data_path):
     if filename.startswith('part-') and not filename.endswith('gstmp'):
       filelist.append(os.path.join(folderpath, filename))
   return filelist
+
+# module-loading utils
+#--------------------------------
+def load_class_from_module(module_name):
+  components = module_name.split('.')
+  mod = __import__(components[0])
+  for comp in components[1:]:
+    mod = getattr(mod, comp)
+  return mod
+
+def load_optimizer(optimizer, learning_rate):
+  """ Dynamically load relevant optimizer """
+  optimizer_path = "tensorflow.keras.optimizers." + optimizer
+  optimizer_module = load_class_from_module(optimizer_path)
+  return optimizer_module(lr=learning_rate)
 
 # data field specification for TFRecords
 features = {
@@ -123,7 +141,7 @@ def build_regression_model(args):
   model.add(layers.MaxPooling2D(pool_size=(2, 2)))
   model.add(layers.Flatten())
 
-  model.add(layers.Dense(units=args.fc_size, activation='relu'))
+  model.add(layers.Dense(units=args.fc1_size, activation='relu'))
   model.add(layers.Dense(units=1, activation = 'sigmoid'))
   model.compile(loss=tf.keras.losses.mean_squared_error, 
               optimizer=tf.keras.optimizers.Adam(), 
@@ -148,11 +166,13 @@ def build_classification_model(args):
   model.add(layers.Dropout(rate=args.dropout_2))
   model.add(layers.Flatten())
 
-  model.add(layers.Dense(units=args.fc_size, activation='relu'))
-  model.add(layers.Dense(units=50, activation='relu'))
+  model.add(layers.Dense(units=args.fc1_size, activation='relu'))
+  model.add(layers.Dense(units=args.fc2_size, activation='relu'))
   model.add(layers.Dense(NUM_CLASSES, activation='softmax'))
+  # set up optimizer
+  lr_optimizer = load_optimizer(args.optimizer, args.learning_rate)
   model.compile(loss=tf.keras.losses.categorical_crossentropy,
-              optimizer=tf.keras.optimizers.Adam(), 
+              optimizer=lr_optimizer,
               metrics=['accuracy'])
   return model
 
@@ -160,19 +180,22 @@ def train_cnn(args):
   # load training data in TFRecord format
   train_tfrecords, val_tfrecords = load_data(args.data_path)
   
-  # initialize wandb logging for your project and save your settingsg
-  wandb.init()
+  # initialize wandb logging for your project and save your settings
+  wandb.init(name=args.model_name)
   config={
     "batch_size" : args.batch_size,
     "epochs": args.epochs,
     "l1_size" : args.l1_size,
     "l2_size" : args.l2_size,
     "l3_size" : args.l3_size,
-    "fc_size" : args.fc_size,
+    "fc1_size" : args.fc1_size,
+    "fc2_size" : args.fc2_size,
     "dropout_1" : args.dropout_1,
     "dropout_2" : args.dropout_2,
     "n_train" : NUM_TRAIN,
-    "n_val" : NUM_VAL
+    "n_val" : NUM_VAL,
+    "optimizer" : args.optimizer,
+    "lr" : args.learning_rate
   }
   wandb.config.update(config)
 
@@ -233,10 +256,15 @@ if __name__ == "__main__":
     default=L3_SIZE,
     help="size of third conv layer")
   parser.add_argument(
-    "--fc_size",
+    "--fc1_size",
     type=int,
-    default=FC_SIZE,
+    default=FC1_SIZE,
     help="size of first fully-connected layer")
+  parser.add_argument(
+    "--fc2_size",
+    type=int,
+    default=FC2_SIZE,
+    help="size of second fully-connected layer")
   parser.add_argument(
     "--dropout_1",
     type=float,
@@ -248,22 +276,26 @@ if __name__ == "__main__":
     default=DROPOUT_2,
     help="second dropout rate") 
   parser.add_argument(
+    "-o",
+    "--optimizer",
+    type=str,
+    default=OPTIMIZER,
+    help="Learning optimizer (match Keras package name exactly)")
+  parser.add_argument(
+    "-lr",
+    "--learning_rate",
+    type=float,
+    default=LEARNING_RATE,
+    help="Learning rate")
+  parser.add_argument(
     "-q",
     "--dry_run",
     action="store_true",
     help="Dry run (do not log to wandb)")
-  parser.add_argument(
-    "--quick_run",
-    action="store_true",
-    help="train quickly on a tenth of the data")   
   args = parser.parse_args()
 
   # easier testing--don't log to wandb if dry run is set
   if args.dry_run:
     os.environ['WANDB_MODE'] = 'dryrun'
-
-  # create run name from command line
-  if args.model_name:
-    os.environ['WANDB_DESCRIPTION'] = args.model_name
 
   train_cnn(args) 
