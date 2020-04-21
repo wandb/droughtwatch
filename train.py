@@ -13,29 +13,36 @@ import math
 import numpy as np
 import os
 import tensorflow as tf
+print(tf.__version__)
+tf.compat.v1.enable_eager_execution()
 from tensorflow.keras import layers, initializers
 
 import wandb
 from wandb.keras import WandbCallback
 
-tf.compat.v1.set_random_seed(1)
+tf.compat.v1.set_random_seed(23)
 
 # for categorical classification, there are 4 classes: 0, 1, 2, or 3+ cows
 NUM_CLASSES = 4
-# fixed image counts from TFRecords
-NUM_TRAIN = 86317
-NUM_VAL = 10778
+# fixed example counts from full dataset in TFRecord format
+TOTAL_TRAIN = 86317
+TOTAL_VAL = 10778
+# limited example counts for faster training/debugging
+NUM_TRAIN = 16000
+NUM_VAL = 3200
 
 # default image side dimension (65 x 65 square)
 IMG_DIM = 65
 # use 7 out of 10 bands for now
 NUM_BANDS = 7
+# number of images to log (keep below 50 for best results)
+NUM_LOG_IMAGES = 16
 
 # settings/hyperparams
 # these defaults can be edited here or overwritten via command line
 MODEL_NAME = ""
 DATA_PATH = "data"
-BATCH_SIZE = 64
+BATCH_SIZE = 128
 EPOCHS = 10
 L1_SIZE = 32
 L2_SIZE = 64
@@ -54,7 +61,7 @@ def class_weights_matrix():
   # 1: ~15%
   # 2: ~15%
   # 3: ~10%
-  class_weights = np.zeros((NUM_TRAIN, NUM_CLASSES))
+  class_weights = np.zeros((TOTAL_TRAIN, NUM_CLASSES))
   class_weights[:, 0] += 1.0
   class_weights[:, 1] += 4.0
   class_weights[:, 2] += 4.0
@@ -107,10 +114,30 @@ features = {
   'label': tf.io.FixedLenFeature([], tf.int64),
 }        
 
-def parse_tfrecords(filelist, batch_size, buffer_size):
+def getband(example_key):
+  img = tf.decode_raw(example_key, tf.uint8)
+  return tf.reshape(img[:IMG_DIM**2], shape=(IMG_DIM, IMG_DIM, 1))
+
+# returns a raw RGB image from the satellite image
+def get_img_from_example(parsed_example, intensify=True):
+  rgbArray = tf.zeros((65,65,3), 'uint8')
+  bandlist = []
+  for i, band in enumerate(['B4', 'B3', 'B2']):
+    band_data = getband(parsed_example[band])
+    band_data = tf.reshape(band_data, shape=(65, 65, 1))
+    if intensify:
+      band_data = band_data / tf.math.reduce_max(band_data)*255
+    else:
+      band_data = band_data*255
+    bandlist.append(band_data)
+  rgbArray = tf.concat(bandlist, -1)
+  rgbArray = tf.reshape(rgbArray, shape=(IMG_DIM, IMG_DIM, 3))   
+  return rgbArray
+
+def parse_tfrecords(filelist, batch_size, buffer_size, include_viz=False):
   # try a subset of possible bands
   def _parse_(serialized_example, keylist=['B2', 'B3', 'B4', 'B5', 'B6', 'B7', 'B8']):
-    example = tf.parse_single_example(serialized_example, features)
+    example = tf.io.parse_single_example(serialized_example, features)
    
     def getband(example_key):
       img = tf.decode_raw(example_key, tf.uint8)
@@ -123,6 +150,11 @@ def parse_tfrecords(filelist, batch_size, buffer_size):
     # one-hot encode ground truth labels 
     label = tf.cast(example['label'], tf.int32)
     label = tf.one_hot(label, NUM_CLASSES)
+   
+    # if logging RGB images as examples, generate RGB image from 11-channel satellite image
+    if include_viz:
+      image = get_img_from_example(example)
+      return {'image' : image, 'label': example['label']}, label
     return {'image': image}, label
     
   tfrecord_dataset = tf.data.TFRecordDataset(filelist)
@@ -179,9 +211,8 @@ def build_classification_model(args):
 def train_cnn(args):
   # load training data in TFRecord format
   train_tfrecords, val_tfrecords = load_data(args.data_path)
-  
+
   # initialize wandb logging for your project and save your settings
-  wandb.init(name=args.model_name)
   config={
     "batch_size" : args.batch_size,
     "epochs": args.epochs,
@@ -192,17 +223,33 @@ def train_cnn(args):
     "fc2_size" : args.fc2_size,
     "dropout_1" : args.dropout_1,
     "dropout_2" : args.dropout_2,
-    "n_train" : NUM_TRAIN,
-    "n_val" : NUM_VAL,
+    "n_train" : args.num_train, 
+    "n_val" : args.num_val, 
     "optimizer" : args.optimizer,
     "lr" : args.learning_rate
   }
-  wandb.config.update(config)
+  
+  # if a special model name is not set from the command line, 
+  # compose model name from relevant hyperparameters
+  run_name = args.model_name
+  if not run_name:
+    run_name = "cnn l_" + str(config["l1_size"]) + "_" + str(config["l2_size"]) + \
+               "_" + str(config["l3_size"]) + " fc_" + str(config["fc1_size"]) + \
+               "_" + str(config["fc2_size"]) + " lr_" + str(config["lr"])
+
+  wandb.init(name=run_name, project="droughtwatch_explore")
+  cfg = wandb.config
+  cfg.setdefaults(config)
 
   # load images and labels from TFRecords
-  train_images, train_labels = parse_tfrecords(train_tfrecords, args.batch_size, NUM_TRAIN)
-  val_images, val_labels = parse_tfrecords(val_tfrecords, args.batch_size, NUM_VAL)
+  train_images, train_labels = parse_tfrecords(train_tfrecords, args.batch_size, args.num_train)
+  val_images, val_labels = parse_tfrecords(val_tfrecords, args.batch_size, args.num_val)
   
+  # optional: if you'd like to log visual examples of the data
+  val_viz, val_viz_labels = parse_tfrecords(val_tfrecords, NUM_LOG_IMAGES, NUM_LOG_IMAGES, include_viz=True)
+  viz_ex = zip(val_viz["image"], val_viz["label"]) 
+  wandb.log({"examples" : [wandb.Image(v[0].numpy(), caption="Class " + str(v[1].numpy())) for v in viz_ex]})
+ 
   # number of steps per epoch is the total data size divided by the batch size
   train_steps_per_epoch = int(math.floor(float(NUM_TRAIN) /float(args.batch_size)))
   val_steps_per_epoch = int(math.floor(float(NUM_VAL)/float(args.batch_size)))
@@ -228,6 +275,18 @@ if __name__ == "__main__":
     type=str,
     default=DATA_PATH,
     help="Path to data, containing train/ and val/")
+  parser.add_argument(
+    "-nt",
+    "--num_train",
+    type=int,
+    default=NUM_TRAIN, 
+    help="Total number of training examples to use")
+  parser.add_argument(
+    "-nv",
+    "--num_val",
+    type=int,
+    default=NUM_VAL, 
+    help="Total number of validation examples to use")
   parser.add_argument(
     "-b",
     "--batch_size",

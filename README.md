@@ -21,6 +21,16 @@ The current dataset consists of 86,317 train and 10,778 validation satellite ima
 The data is in TFRecords format, split into ``train`` and ``val``, and takes up ~4.3GB (2.15GB zipped). 
 You can [learn more about the format of the satellite images here](https://developers.google.com/earth-engine/datasets/catalog/LANDSAT_LC08_C01_T1_RT).
 
+The data used in this research was collected through a research collaboration between the International Livestock Research Institute, Cornell University, and UC San Diego. It was supported by the Atkinson Centre for a Sustainable Future’s Academic Venture Fund, Australian Aid through the AusAID Development Research Awards Scheme Agreement No. 66138, the National Science Foundation (0832782, 1059284, 1522054), and ARO grant W911-NF-14-1-0498.
+
+## Ongoing research
+
+This project will be presented at the [Computer Vision for Agriculture Workshop](https://www.cv4gc.org/cv4a2020/) Workshop at [ICLR 2020](https://iclr.cc/). The livestream should be available on [SlidesLive](https://slideslive.com/iclr), and we will update this with a link to the recording. We're always looking for collaboration opportunities related to this work, satellite-based prediction for agriculture or insurance, and deep learning for environmental sustainability more generally. Please reach out to Andrew at awhobbs@ucdavis.edu or Stacey at stacey@wandb.com (especially with ideas related to [Weights & Biases Benchmarks](https://www.wandb.com/benchmarks)).
+
+## How to cite
+
+Our paper, Satellite-based Prediction of Forage Conditions for Livestock in Northern Kenya, is [now available here on Arxiv](https://arxiv.org/abs/2004.04081)
+
 ## Setup instructions
 
 ```sh
@@ -64,3 +74,5 @@ Here are some ideas to try next:
 * comparison between formulating this task as a regression (predicting a continuous value for drought severity or forage quality) vs a classification (predicting a discrete label))
 * explore correlations between the RGB ground-level photos and satellite images
 * explore strategies to account for the class imbalance (roughly ~60% of the full data gathered is of class 0, classes 1 and 2 have ~15% each, and the remaining ~10% is class 3)
+
+
