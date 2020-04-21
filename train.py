@@ -22,6 +22,9 @@ from wandb.keras import WandbCallback
 
 tf.compat.v1.set_random_seed(23)
 
+# W&B project name: this is where all your training runs will be stored
+WB_PROJECT_NAME = "droughtwatch"
+
 # for categorical classification, there are 4 classes: 0, 1, 2, or 3+ cows
 NUM_CLASSES = 4
 # fixed example counts from full dataset in TFRecord format
@@ -237,7 +240,7 @@ def train_cnn(args):
                "_" + str(config["l3_size"]) + " fc_" + str(config["fc1_size"]) + \
                "_" + str(config["fc2_size"]) + " lr_" + str(config["lr"])
 
-  wandb.init(name=run_name, project="droughtwatch_explore")
+  wandb.init(name=run_name, project=WB_PROJECT_NAME)
   cfg = wandb.config
   cfg.setdefaults(config)
 
