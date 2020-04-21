@@ -1,0 +1,24 @@
+name: architecture search 
+description: try different layer sizes and dropout
+program: train.py
+method: bayes
+metric:
+  name: val_acc
+  goal: maximize
+parameters:
+  l1_size:
+    values: [16, 32, 50, 64, 128]
+  l2_size:
+    values: [16, 32, 50, 64, 128]
+  l3_size:
+    values: [16, 32, 50, 64, 128, 256]
+  fc1_size:
+    values: [32, 50, 64, 100, 128, 200]
+  fc2_size:
+    values: [16, 32, 50, 64, 100, 128, 200]
+  dropout_1:
+    values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+  dropout_2:
+    values: [0.0, 0.1, 0.2, 0.3, 0.4, 0.5]
+  learning_rate: 
+    values: [0.00005, 0.0001, 0.0005, 0.00075, 0.001]
