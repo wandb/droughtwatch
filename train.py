@@ -31,8 +31,8 @@ NUM_CLASSES = 4
 TOTAL_TRAIN = 86317
 TOTAL_VAL = 10778
 # limited example counts for faster training/debugging
-NUM_TRAIN = 16000
-NUM_VAL = 3200
+NUM_TRAIN = 86317
+NUM_VAL = 10778
 
 # default image side dimension (65 x 65 square)
 IMG_DIM = 65
@@ -45,15 +45,18 @@ NUM_LOG_IMAGES = 16
 # these defaults can be edited here or overwritten via command line
 MODEL_NAME = ""
 DATA_PATH = "data"
-BATCH_SIZE = 128
-EPOCHS = 10
-L1_SIZE = 32
-L2_SIZE = 64
-L3_SIZE = 128
-FC1_SIZE = 128
-FC2_SIZE = 50
+BATCH_SIZE = 256
+EPOCHS = 25
+L1_SIZE = 64
+L2_SIZE = 128
+L3_SIZE = 512
+L4_SIZE=1024
+FC1_SIZE = 512
+FC2_SIZE = 128
+FC3_SIZE = 64
 DROPOUT_1 = 0.2
-DROPOUT_2 = 0.2
+DROPOUT_2 = 0.3
+DROPOUT_3 = 0.3
 OPTIMIZER = "Adam"
 LEARNING_RATE = 0.001
 
@@ -185,24 +188,38 @@ def build_regression_model(args):
 
 def build_classification_model(args):
   # simple CNN for classifcation (default)
-  model = tf.keras.Sequential()
+  model = tf.keras.Sequential(name='drought')
   model.add(tf.keras.layers.InputLayer(input_shape=[IMG_DIM, IMG_DIM, NUM_BANDS], name='image'))
+  
   model.add(layers.Conv2D(filters=args.l1_size, kernel_size=(3, 3), activation='relu'))
   model.add(layers.MaxPooling2D(pool_size=(2, 2)))
-
-  model.add(layers.Conv2D(filters=args.l2_size, kernel_size=(3, 3), activation='relu'))
+  model.add(layers.BatchNormalization())
+  
   model.add(layers.Conv2D(filters=args.l2_size, kernel_size=(3, 3), activation='relu'))
   model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+  model.add(layers.BatchNormalization())
+  model.add(layers.Dropout(args.dropout_1))
+   
+  model.add(layers.Conv2D(filters=args.l3_size, kernel_size=(3, 3), activation='relu'))
+  model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+  model.add(layers.BatchNormalization())
   model.add(layers.Dropout(args.dropout_1))
   
-  model.add(layers.Conv2D(filters=args.l3_size, kernel_size=(3, 3), activation='relu'))
-  model.add(layers.Conv2D(filters=args.l3_size, kernel_size=(3, 3), activation='relu'))
+  model.add(layers.Conv2D(filters=args.l4_size, kernel_size=(3, 3), activation='relu'))
+  model.add(layers.Conv2D(filters=args.l4_size, kernel_size=(3, 3), activation='relu'))
   model.add(layers.MaxPooling2D(pool_size=(2, 2)))
+  model.add(layers.BatchNormalization())
+ 
+ 
   model.add(layers.Dropout(rate=args.dropout_2))
   model.add(layers.Flatten())
 
   model.add(layers.Dense(units=args.fc1_size, activation='relu'))
+  model.add(layers.Dropout(rate=args.dropout_3))
   model.add(layers.Dense(units=args.fc2_size, activation='relu'))
+  model.add(layers.Dropout(rate=args.dropout_3))
+  model.add(layers.Dense(units=args.fc3_size, activation='relu'))
+  model.add(layers.Dropout(rate=args.dropout_3))
   model.add(layers.Dense(NUM_CLASSES, activation='softmax'))
   # set up optimizer
   lr_optimizer = load_optimizer(args.optimizer, args.learning_rate)
@@ -222,10 +239,13 @@ def train_cnn(args):
     "l1_size" : args.l1_size,
     "l2_size" : args.l2_size,
     "l3_size" : args.l3_size,
+    "l4_size" : args.l4_size,
     "fc1_size" : args.fc1_size,
     "fc2_size" : args.fc2_size,
+    "fc3_size" : args.fc3_size,
     "dropout_1" : args.dropout_1,
     "dropout_2" : args.dropout_2,
+    "dropout_3" : args.dropout_3,
     "n_train" : args.num_train, 
     "n_val" : args.num_val, 
     "optimizer" : args.optimizer,
@@ -318,6 +338,11 @@ if __name__ == "__main__":
     default=L3_SIZE,
     help="size of third conv layer")
   parser.add_argument(
+    "--l4_size",
+    type=int,
+    default=L4_SIZE,
+    help="size of fourth conv layer")
+  parser.add_argument(
     "--fc1_size",
     type=int,
     default=FC1_SIZE,
@@ -328,6 +353,11 @@ if __name__ == "__main__":
     default=FC2_SIZE,
     help="size of second fully-connected layer")
   parser.add_argument(
+    "--fc3_size",
+    type=int,
+    default=FC3_SIZE,
+    help="size of third fully-connected layer")
+  parser.add_argument(
     "--dropout_1",
     type=float,
     default=DROPOUT_1,
@@ -337,6 +367,11 @@ if __name__ == "__main__":
     type=float,
     default=DROPOUT_2,
     help="second dropout rate") 
+  parser.add_argument(
+    "--dropout_3",
+    type=float,
+    default=DROPOUT_3,
+    help="third dropout rate") 
   parser.add_argument(
     "-o",
     "--optimizer",
